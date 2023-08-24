@@ -29,7 +29,9 @@ async function main() {
     }
 
     const dateString = format(date, "yyyy-MM-dd");
-    const archivePath = `./archive/${dateString}.html`;
+    const archivePath = `${
+      process.env.ARCHIVE_PATH || "./archive"
+    }/${dateString}.l`;
 
     // Skip if the file already exists
     if (Bun.file(archivePath).size !== 0) {
