@@ -8,7 +8,7 @@ const HN_FRONT_PAGE_URL = "https://news.ycombinator.com/front";
 let errorCount = 0;
 
 async function main() {
-  // Get a date range for all dates between yesterday and the first date
+  // Get a date range for all dates between `FIRST_DATE_WITH_EXACT_DATA` and yesterday
   const dateRange = eachDayOfInterval({
     start: FIRST_DATE_WITH_EXACT_DATA,
     end: subDays(new Date(), 1),
