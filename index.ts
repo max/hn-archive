@@ -1,5 +1,6 @@
 import { eachDayOfInterval, format, subDays } from "date-fns";
 import notify from "./lib/notify";
+import { ZenRows } from "zenrows";
 
 const FIRST_DATE = new Date("2006-10-09");
 const FIRST_DATE_WITH_EXACT_DATA = new Date("2014-11-11");
@@ -7,10 +8,12 @@ const HN_FRONT_PAGE_URL = "https://news.ycombinator.com/front";
 
 let errorCount = 0;
 
+const zenRowsClient = new ZenRows(process.env.ZENROWS_API_KEY || "");
+
 async function main() {
   // Get a date range for all dates between yesterday and `FIRST_DATE_WITH_EXACT_DATA`
   const dateRange = eachDayOfInterval({
-    start: FIRST_DATE_WITH_EXACT_DATA,
+    start: FIRST_DATE,
     end: subDays(new Date(), 1),
   }).reverse();
 
@@ -31,7 +34,7 @@ async function main() {
     const dateString = format(date, "yyyy-MM-dd");
     const archivePath = `${
       process.env.ARCHIVE_PATH || "./archive"
-    }/${dateString}.l`;
+    }/${dateString}.html`;
 
     // Skip if the file already exists
     if (Bun.file(archivePath).size !== 0) {
@@ -43,31 +46,18 @@ async function main() {
 
     console.log(`Fetching: ${url}`);
 
-    const res = await fetch(url, {
-      headers: {
-        // Set a user agent to avoid being blocked
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36",
-      },
-      // Fake a referrer to avoid being blocked
-      referrer: "https://news.ycombinator.com/front",
-    });
+    try {
+      const { data } = await zenRowsClient.get(url, {
+        premium_proxy: false,
+      });
 
-    if (!res.ok) {
-      console.log(`Error (${res.status}) fetching: ${url}`);
+      await Bun.write(`./archive/${format(date, "yyyy-MM-dd")}.html`, data);
+    } catch (error) {
+      console.log(`Error fetching: ${url}`);
       errorCount++;
       continue;
-    } else {
-      await Bun.write(`./archive/${format(date, "yyyy-MM-dd")}.html`, res);
     }
-
-    // Rate limit to 1 request every 3-5 seconds
-    await sleep(Math.random() * (5000 - 3000) + 3000);
   }
 }
 
 main();
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
